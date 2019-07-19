@@ -3,12 +3,34 @@ package helloflink
 import java.util.concurrent.TimeUnit
 
 import helloflink.source.{Tick, TickSource}
-import org.apache.flink.api.scala._
+import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.api.functions.co.CoProcessFunction
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
-import org.apache.flink.streaming.api.windowing.time.Time
+import org.apache.flink.streaming.api.windowing.assigners.GlobalWindows
+import org.apache.flink.streaming.api.windowing.triggers.Trigger.TriggerContext
+import org.apache.flink.streaming.api.windowing.triggers.{PurgingTrigger, Trigger, TriggerResult}
+import org.apache.flink.streaming.api.windowing.windows.{GlobalWindow, Window}
 import org.apache.flink.util.Collector
 
+case class MyInt(i: Int)
+
+
+class MyIntTrigger[W <: Window] extends Trigger[MyInt,W] {
+
+  override def onElement(element: MyInt, timestamp: Long, window: W, ctx: TriggerContext): TriggerResult = {
+    //trigger is fired if average marks of a student cross 80
+    TriggerResult.FIRE
+  }
+
+  override def onProcessingTime(time: Long, window: W, ctx: TriggerContext): TriggerResult = {
+    TriggerResult.CONTINUE
+  }
+  override def onEventTime(time: Long, window: W, ctx: TriggerContext): TriggerResult = {
+    TriggerResult.CONTINUE
+  }
+
+  override def clear(window: W, ctx: TriggerContext) = ???
+}
 
 object PeriodicUpdate extends App {
 
@@ -41,13 +63,15 @@ object PeriodicUpdate extends App {
   // parse the data, group it, window it, and aggregate the counts
   val windowCounts = text
     .flatMap { w => w.split("\\s") }
-    .map { w => WordWithCount(w, 1) }
+    .map { w => MyInt(w.toInt) }
     .setParallelism(1)
-    .connect(periodic).process(cop)
+    //.connect(periodic).process(cop)
+    .join(periodic).where(_.i).equalTo(t=>t.value).window(GlobalWindows.create())
+    .trigger(PurgingTrigger.of(new MyIntTrigger[GlobalWindow]()))
+    .apply((a,b) => a )
     .setParallelism(1)
-    .keyBy("word")
-    .timeWindow(Time.seconds(5), Time.seconds(1))
-    .sum("count")
+//    .timeWindow(Time.seconds(5), Time.seconds(1))
+
 
 
 

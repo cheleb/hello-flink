@@ -6,7 +6,7 @@ import java.util.concurrent.{ExecutorService, Executors, ScheduledExecutorServic
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.streaming.api.functions.source.{RichSourceFunction, SourceFunction}
 
-case class Tick(word: String, localDateTime: LocalDateTime)
+case class Tick(value: Int, localDateTime: LocalDateTime)
 
 class TickSource(initialDelay: Long, delay: Long, timeUnit: TimeUnit) extends RichSourceFunction[Tick]{
 
@@ -16,6 +16,8 @@ class TickSource(initialDelay: Long, delay: Long, timeUnit: TimeUnit) extends Ri
   @volatile
   private var isRunning = true
 
+  @volatile
+  private var count = 0
 
   override def open(parameters: Configuration): Unit = {
   }
@@ -25,7 +27,8 @@ class TickSource(initialDelay: Long, delay: Long, timeUnit: TimeUnit) extends Ri
 
 
     while (isRunning) {
-      ctx.collect(Tick("kkk", LocalDateTime.now()))
+      count = count +1
+      ctx.collect(Tick(count, LocalDateTime.now()))
       synchronized(
       wait( waitDelay ))
     }
