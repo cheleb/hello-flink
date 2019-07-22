@@ -11,7 +11,7 @@ case class Tick(value: Int, localDateTime: LocalDateTime)
 class TickSource(initialDelay: Long, delay: Long, timeUnit: TimeUnit) extends RichSourceFunction[Tick]{
 
 
-  private val waitDelay = TimeUnit.MILLISECONDS.convert(delay, timeUnit)
+  private val waitDelay = timeUnit.convert(delay, TimeUnit.MILLISECONDS)
 
   @volatile
   private var isRunning = true
@@ -27,7 +27,7 @@ class TickSource(initialDelay: Long, delay: Long, timeUnit: TimeUnit) extends Ri
 
 
     while (isRunning) {
-      count = count +1
+      count = (count + 1) % 10
       ctx.collect(Tick(count, LocalDateTime.now()))
       synchronized(
       wait( waitDelay ))
