@@ -1,1 +1,1 @@
-libraryDependencies += "org.apache.flink" %% "flink-streaming-scala" % "1.9.1"
+libraryDependencies += "org.apache.flink" %% "flink-streaming-scala" % "1.10.0"
