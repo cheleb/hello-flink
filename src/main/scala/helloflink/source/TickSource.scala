@@ -5,10 +5,12 @@ import java.util.concurrent.{ExecutorService, Executors, ScheduledExecutorServic
 
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.streaming.api.functions.source.{RichSourceFunction, SourceFunction}
+import org.apache.flink.streaming.api.functions.source.ParallelSourceFunction
+import java.util.UUID
 
-case class Tick(value: Int, localDateTime: LocalDateTime)
+case class Tick(uuid: Option[UUID],value: Int, localDateTime: LocalDateTime)
 
-class TickSource(initialDelay: Long, delay: Long, timeUnit: TimeUnit) extends RichSourceFunction[Tick]{
+class TickSource(initialDelay: Long, delay: Long, timeUnit: TimeUnit) extends ParallelSourceFunction[Tick]{
 
 
   private val waitDelay = timeUnit.convert(delay, TimeUnit.MILLISECONDS)
@@ -19,18 +21,17 @@ class TickSource(initialDelay: Long, delay: Long, timeUnit: TimeUnit) extends Ri
   @volatile
   private var count = 0
 
-  override def open(parameters: Configuration): Unit = {
-  }
 
 
   override def run(ctx: SourceFunction.SourceContext[Tick]): Unit = {
 
 
     while (isRunning) {
-      count = (count + 1) % 10
-      ctx.collect(Tick(count, LocalDateTime.now()))
+      count = count + 1
+      ctx.collect(Tick(if(count % 10==11) None else Some(UUID.randomUUID()), count, LocalDateTime.now()))
       synchronized(
-      wait( waitDelay ))
+        wait( waitDelay ))
+        if(false && count>10) cancel()
     }
 
 
