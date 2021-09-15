@@ -8,7 +8,7 @@ import org.apache.flink.streaming.api.functions.source.{RichSourceFunction, Sour
 import org.apache.flink.streaming.api.functions.source.ParallelSourceFunction
 import java.util.UUID
 
-case class Tick(uuid: Option[UUID],value: Int, localDateTime: LocalDateTime)
+case class Tick(uuid: Option[UUID],value: Int, localDateTime: LocalDateTime, action: String="click")
 
 class TickSource(initialDelay: Long, delay: Long, timeUnit: TimeUnit) extends ParallelSourceFunction[Tick]{
 

@@ -16,7 +16,7 @@ import helloflink.source.Tick
 
 
 
-class DedupFunctionCaseClass(ttl: Int)
+class DedupFunctionValueState(ttl: Int)
     extends KeyedProcessFunction[String, Tick, Tick] 
      {
 
@@ -25,7 +25,7 @@ class DedupFunctionCaseClass(ttl: Int)
 
 
   @transient
-  private var operatorState: ValueState[DedupCaseClasse] = _
+  private var operatorState: ValueState[Int] = _
 
   var evictedCount: Counter = _
 
@@ -35,16 +35,16 @@ class DedupFunctionCaseClass(ttl: Int)
     evictedCount = getRuntimeContext.getMetricGroup.counter("duplicated-evicted")
 
     
-case class DedupCaseClasse(click: Int, impression: Int, other: Int)
+
 val ttlConfig: StateTtlConfig = StateTtlConfig
       .newBuilder(Time.seconds(ttl))
       .setUpdateType(StateTtlConfig.UpdateType.OnCreateAndWrite)
       .setStateVisibility(StateTtlConfig.StateVisibility.NeverReturnExpired)
       .build
 
-    val descriptor: ValueStateDescriptor[DedupCaseClasse] =
-      new ValueStateDescriptor[DedupCaseClasse](
-        "seen", classOf[DedupCaseClasse]
+    val descriptor: ValueStateDescriptor[Int] =
+      new ValueStateDescriptor[Int](
+        "seen", classOf[Int]
       )
     descriptor.enableTimeToLive(ttlConfig)
 
@@ -58,16 +58,12 @@ val ttlConfig: StateTtlConfig = StateTtlConfig
     out:   Collector[Tick],
   ): Unit ={
 
-  val action = value.uuid.get.toString()
-  val cache = Option(operatorState.value()).getOrElse(DedupCaseClasse(0,0,0))
-  val (updated, ok) =  action match {
-    case "click" => (cache.copy(click = cache.click+1), cache.click < 1)
-    case "impression" => (cache.copy(impression = cache.impression+1), cache.impression < 1)
-    case _ => (cache.copy(other = cache.other+1), cache.other < 1)
-  }
+  val action = value.action
+  val count = operatorState.value()
 
-  operatorState.update(updated)
-      if (ok) {
+
+  operatorState.update(count + 1)
+      if (count < 1) {
         out.collect(value)
       }
 
